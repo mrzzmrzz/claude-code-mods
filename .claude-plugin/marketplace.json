@@ -1,0 +1,11 @@
+{
+  "name": "claude-code-mods",
+  "owner": { "name": "mrzzmrzz" },
+  "plugins": [
+    {
+      "name": "token-weather",
+      "source": "./plugins/token-weather",
+      "description": "A live weather forecast of your context window, in the band above the prompt"
+    }
+  ]
+}
