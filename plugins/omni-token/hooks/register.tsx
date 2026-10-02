@@ -6,14 +6,14 @@ import type { Cache, Reading, Warm } from '../types'
 const MAX_TURNS = 12
 const BARS = '▁▂▃▄▅▆▇█'
 
-const history = atom({ plugin: 'token-weather', key: 'history' } as const, [])
+const history = atom({ plugin: 'omni-token', key: 'history' } as const, [])
 // Output tokens per second of the last turn, timed from each request's start.
-const speed = atom({ plugin: 'token-weather', key: 'speed' } as const, null)
+const speed = atom({ plugin: 'omni-token', key: 'speed' } as const, null)
 // Last turn's cache hit rate and when the last main-loop request touched the cache.
-const cache = atom({ plugin: 'token-weather', key: 'cache' } as const, null)
+const cache = atom({ plugin: 'omni-token', key: 'cache' } as const, null)
 // Wall clock, ticked every second so the cache countdown redraws.
-const clock = atom({ plugin: 'token-weather', key: 'now' } as const, 0)
-const warm = atom({ plugin: 'token-weather', key: 'warm' } as const, { count: 0, missed: false })
+const clock = atom({ plugin: 'omni-token', key: 'now' } as const, 0)
+const warm = atom({ plugin: 'omni-token', key: 'warm' } as const, { count: 0, missed: false })
 
 // Below this a cold restart is cheap, so warming isn't worth it.
 const MIN_WARM_TOKENS = 50_000

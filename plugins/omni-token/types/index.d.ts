@@ -8,7 +8,7 @@ export type Warm = { count: number; missed: boolean }
 
 declare module 'claude-code' {
   interface PluginState {
-    'token-weather': {
+    'omni-token': {
       history: Reading[]
       speed: number | null
       cache: Cache | null

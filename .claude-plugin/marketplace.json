@@ -8,9 +8,9 @@
   },
   "plugins": [
     {
-      "name": "token-weather",
-      "source": "./plugins/token-weather",
-      "description": "A live weather forecast of your context window, in the band above the prompt"
+      "name": "omni-token",
+      "source": "./plugins/omni-token",
+      "description": "Context window weather, tok/s, prompt-cache hit rate and TTL, and cache auto-warm, in the band above the prompt"
     }
   ]
 }

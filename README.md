@@ -8,12 +8,12 @@ In Claude Code:
 
 ```
 /plugin marketplace add mrzzmrzz/claude-code-mods
-/plugin install token-weather@claude-code-mods
+/plugin install omni-token@claude-code-mods
 ```
 
 ## Mods
 
-### token-weather
+### omni-token
 
 A live forecast of your context window, shown in the band above the prompt and updated after every turn:
 
@@ -59,11 +59,11 @@ The API's usage figures don't say which TTL a session runs on, so set it to matc
 Load a mod straight from this checkout, with hot reload on save:
 
 ```
-claude --plugin-dir ./plugins/token-weather
+claude --plugin-dir ./plugins/omni-token
 ```
 
 Check one before committing:
 
 ```
-claude plugin validate ./plugins/token-weather
+claude plugin validate ./plugins/omni-token
 ```
