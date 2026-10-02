@@ -1,6 +1,6 @@
 {
   "name": "token-weather",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A live weather forecast of your context window, in the band above the prompt",
   "types": "./types/index.d.ts",
   "author": {
@@ -16,6 +16,18 @@
         "5m",
         "1h"
       ]
+    },
+    "autoWarm": {
+      "type": "boolean",
+      "title": "Auto-warm the prompt cache",
+      "description": "While the session is idle, re-read the cached prefix with a tiny forked request shortly before it expires. Each warm bills a cache read of the whole context plus a few hundred output tokens",
+      "default": false
+    },
+    "warmHours": {
+      "type": "number",
+      "title": "Keep warm for (hours)",
+      "description": "Stop auto-warming this many hours after the last turn started, and let the cache expire",
+      "default": 24
     }
   }
 }

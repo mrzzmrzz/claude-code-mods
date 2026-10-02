@@ -1,7 +1,7 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import type { Cache, Reading } from '../types'
+import type { Cache, Reading, Warm } from '../types'
 
 const MAX_TURNS = 12
 const BARS = '▁▂▃▄▅▆▇█'
@@ -13,6 +13,11 @@ const speed = atom({ plugin: 'token-weather', key: 'speed' } as const, null)
 const cache = atom({ plugin: 'token-weather', key: 'cache' } as const, null)
 // Wall clock, ticked every second so the cache countdown redraws.
 const clock = atom({ plugin: 'token-weather', key: 'now' } as const, 0)
+const warm = atom({ plugin: 'token-weather', key: 'warm' } as const, { count: 0, missed: false })
+
+// Below this a cold restart is cheap, so warming isn't worth it.
+const MIN_WARM_TOKENS = 50_000
+const WARM_PROMPT = 'Cache keep-alive. Reply with exactly: ok'
 
 function forecast(percent: number) {
   if (percent >= 90) return { word: 'Compact soon', color: 'red' }
@@ -43,6 +48,39 @@ function countdown(ms: number) {
   return `${m}:${sec}`
 }
 
+// One forked request over the main thread's prefix: a cache read restarts its TTL.
+async function warmCache($: EngineInterface, startedAt: number) {
+  const r = await $.model.fork({ prompt: WARM_PROMPT })
+  if (!('usage' in r)) return
+  const hit = r.usage.cache_read_input_tokens > 0
+  await update($, warm, w => ({ count: w.count + 1, missed: !hit }))
+  if (hit) await update($, cache, c => (c ? { ...c, lastRequestAt: startedAt } : c))
+}
+
+type WarmConfig = { autoWarm: boolean; ttlMs: number; marginMs: number; warmMs: number }
+
+// What the hooks know of the main loop right now; starts over on a reload.
+const live = { isBusy: false, isWarming: false, lastTurnAt: 0 }
+
+async function maybeWarm($: EngineInterface, cfg: WarmConfig) {
+  if (!cfg.autoWarm || live.isBusy || live.isWarming || live.lastTurnAt === 0) return
+  const now = await $.clock.now()
+  if (now - live.lastTurnAt > cfg.warmMs) return
+  const [cached, readings, w] = [await read($, cache), await read($, history), await read($, warm)]
+  if (cached === null || w.missed) return
+  const left = cached.lastRequestAt + cfg.ttlMs - now
+  // Already expired: a warm would pay a full write, the very cost it exists to avoid.
+  if (left <= 0 || left > cfg.marginMs) return
+  const tokens = readings[readings.length - 1]?.tokens ?? 0
+  if (tokens < MIN_WARM_TOKENS) return
+  live.isWarming = true
+  try {
+    await warmCache($, now)
+  } finally {
+    live.isWarming = false
+  }
+}
+
 async function measure($: EngineInterface) {
   const { context } = await $.session.usage()
   if (context.tokens === undefined) return
@@ -52,12 +90,20 @@ async function measure($: EngineInterface) {
 
 export const register: Register = (on, options) => {
   const ttlMs = options.cacheTtl === '5m' ? 5 * 60_000 : 60 * 60_000
+  // Warm this long before expiry: room for the request to reach the API.
+  const marginMs = options.cacheTtl === '5m' ? 60_000 : 3 * 60_000
+  const cfg: WarmConfig = {
+    autoWarm: options.autoWarm === true,
+    ttlMs,
+    marginMs,
+    warmMs: (typeof options.warmHours === 'number' ? options.warmHours : 24) * 3_600_000,
+  }
 
   // Per main-loop turn: output tokens and milliseconds from request to response end.
   let streamed = { turnId: '', tokens: 0, ms: 0 }
 
   on('turn.step', async function* ($, e, next) {
-    if (e.agentId !== undefined) return yield* next(e)
+    if (e.agentId !== undefined || !live.isBusy) return yield* next(e)
     if (streamed.turnId !== e.turnId) streamed = { turnId: e.turnId, tokens: 0, ms: 0 }
 
     // Timed from the request, so thinking (streamed, summarized or not) and
@@ -73,6 +119,13 @@ export const register: Register = (on, options) => {
     return result
   })
 
+  on('turn.start', async ($, e, next) => {
+    live.isBusy = true
+    live.lastTurnAt = await $.clock.now()
+    await update($, warm, () => ({ count: 0, missed: false }))
+    return next(e)
+  })
+
   on('session.start', async ($, e, next) => {
     const result = await next(e)
     const tick = async () => {
@@ -80,7 +133,7 @@ export const register: Register = (on, options) => {
       await update($, clock, () => t)
     }
     await tick()
-    $.clock.every(1000, () => void tick())
+    $.clock.every(1000, () => void tick().then(() => maybeWarm($, cfg)))
     // Seed one reading on a fresh load (or a hot reload mid-session).
     if ((await read($, history)).length === 0) await measure($)
     return result
@@ -89,6 +142,7 @@ export const register: Register = (on, options) => {
   on('turn.complete', async ($, e, next) => {
     const result = await next(e)
     if (e.agentId !== undefined) return result
+    live.isBusy = false
     await measure($)
     if (streamed.turnId === e.turnId && streamed.ms > 0) {
       const tps = streamed.tokens / (streamed.ms / 1000)
@@ -110,6 +164,7 @@ export const register: Register = (on, options) => {
     const tps = await read($, speed)
     const cached = await read($, cache)
     const nowMs = await read($, clock)
+    const warmed = await read($, warm)
     if (e.props.hasSurvey || readings.length === 0) return next(e)
 
     const { Box, Text } = $.ui.resolve(e)
@@ -145,6 +200,11 @@ export const register: Register = (on, options) => {
           </Text>
         ) : null}
         {cached !== null ? cacheInfo(Text, cached, cached.lastRequestAt + ttlMs - nowMs) : null}
+        {warmed.missed ? (
+          <Text color="red">{'  '}warm missed</Text>
+        ) : warmed.count > 0 ? (
+          <Text dimColor>{'  '}warmed {warmed.count}x</Text>
+        ) : null}
       </Box>
     )
   })
