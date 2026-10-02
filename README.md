@@ -18,16 +18,16 @@ In Claude Code:
 A live forecast of your context window, shown in the band above the prompt and updated after every turn:
 
 ```
-☁ Cloudy  67% 134.4k / 200k  ▂▃▄▅▆█  ▲ +98.3k last turn  ⚡ 95 tok/s
+Cloudy  67% 134.4k / 200k  ▂▃▄▅▆█  ▲ +98.3k last turn  95 tok/s
 ```
 
-| Fill | Forecast |
+| Fill | Forecast (color) |
 | --- | --- |
-| < 25% | ☀ Clear |
-| 25–49% | ☁ Cloudy |
-| 50–74% | ☂ Showers |
-| 75–89% | ☇ Storm |
-| ≥ 90% | ↯ Compact soon |
+| < 25% | Clear (yellow) |
+| 25–49% | Cloudy (cyan) |
+| 50–74% | Showers (blue) |
+| 75–89% | Storm (magenta) |
+| ≥ 90% | Compact soon (red) |
 
 - The sparkline covers the last 12 turns, scaled to the highest of them.
 - `tok/s` is the last turn's output tokens (thinking included) over the time from each request's start to its response's end.

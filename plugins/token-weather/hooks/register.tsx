@@ -11,11 +11,11 @@ const history = atom({ plugin: 'token-weather', key: 'history' } as const, [])
 const speed = atom({ plugin: 'token-weather', key: 'speed' } as const, null)
 
 function forecast(percent: number) {
-  if (percent >= 90) return { icon: '↯', word: 'Compact soon', color: 'red' }
-  if (percent >= 75) return { icon: '☇', word: 'Storm', color: 'magenta' }
-  if (percent >= 50) return { icon: '☂', word: 'Showers', color: 'blue' }
-  if (percent >= 25) return { icon: '☁', word: 'Cloudy', color: 'cyan' }
-  return { icon: '☀', word: 'Clear', color: 'yellow' }
+  if (percent >= 90) return { word: 'Compact soon', color: 'red' }
+  if (percent >= 75) return { word: 'Storm', color: 'magenta' }
+  if (percent >= 50) return { word: 'Showers', color: 'blue' }
+  if (percent >= 25) return { word: 'Cloudy', color: 'cyan' }
+  return { word: 'Clear', color: 'yellow' }
 }
 
 function short(n: number) {
@@ -91,7 +91,7 @@ export const register: Register = on => {
     return (
       <Box>
         <Text color={sky.color} bold>
-          {sky.icon} {sky.word}
+          {sky.word}
         </Text>
         <Text>
           {'  '}
@@ -110,7 +110,7 @@ export const register: Register = on => {
         ) : null}
         {tps !== null ? (
           <Text dimColor>
-            {'  '}⚡ {Math.round(tps)} tok/s
+            {'  '}{Math.round(tps)} tok/s
           </Text>
         ) : null}
       </Box>
