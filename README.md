@@ -18,7 +18,7 @@ In Claude Code:
 A live forecast of your context window, shown in the band above the prompt and updated after every turn:
 
 ```
-Cloudy  67% 134.4k / 200k  ▂▃▄▅▆█  ▲ +98.3k last turn  95 tok/s
+Cloudy  67% 134.4k / 200k  ▂▃▄▅▆█  ▲ +98.3k last turn  95 tok/s  cache 96% 58:12
 ```
 
 | Fill | Forecast (color) |
@@ -31,6 +31,16 @@ Cloudy  67% 134.4k / 200k  ▂▃▄▅▆█  ▲ +98.3k last turn  95 tok/s
 
 - The sparkline covers the last 12 turns, scaled to the highest of them.
 - `tok/s` is the last turn's output tokens (thinking included) over the time from each request's start to its response's end.
+- `cache 96%` is the last turn's prompt-cache hit rate: cache reads over all input tokens.
+- `58:12` counts down to when the prompt cache expires: the last main-loop request's start plus the cache TTL. It turns yellow under 5 minutes and reads `expired` after.
+
+### Options
+
+| Option | Values | Default |
+| --- | --- | --- |
+| `cacheTtl` | `5m`, `1h` | `1h` |
+
+The API's usage figures don't say which TTL a session runs on, so set it to match yours: `1h` on most Claude subscriptions, `5m` on the API default or in usage overage.
 
 ## Developing
 

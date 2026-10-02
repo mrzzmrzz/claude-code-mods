@@ -1,9 +1,21 @@
 {
   "name": "token-weather",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A live weather forecast of your context window, in the band above the prompt",
   "types": "./types/index.d.ts",
   "author": {
     "name": "mrzzmrzz"
+  },
+  "userConfig": {
+    "cacheTtl": {
+      "type": "string",
+      "title": "Prompt cache TTL",
+      "description": "How long the prompt cache lives after the last request: 1h on most Claude subscriptions, 5m on the API default or in usage overage",
+      "default": "1h",
+      "options": [
+        "5m",
+        "1h"
+      ]
+    }
   }
 }
