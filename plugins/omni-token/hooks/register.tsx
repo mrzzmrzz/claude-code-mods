@@ -14,6 +14,7 @@ const cache = atom({ plugin: 'omni-token', key: 'cache' } as const, null)
 // Wall clock, ticked every second so the cache countdown redraws.
 const clock = atom({ plugin: 'omni-token', key: 'now' } as const, 0)
 const warm = atom({ plugin: 'omni-token', key: 'warm' } as const, { count: 0, missed: false })
+const warmOverride = atom({ plugin: 'omni-token', key: 'warmOverride' } as const, null)
 
 // Below this a cold restart is cheap, so warming isn't worth it.
 const MIN_WARM_TOKENS = 50_000
@@ -63,7 +64,8 @@ type WarmConfig = { autoWarm: boolean; ttlMs: number; marginMs: number; warmMs: 
 const live = { isBusy: false, isWarming: false, lastTurnAt: 0 }
 
 async function maybeWarm($: EngineInterface, cfg: WarmConfig) {
-  if (!cfg.autoWarm || live.isBusy || live.isWarming || live.lastTurnAt === 0) return
+  if (live.isBusy || live.isWarming || live.lastTurnAt === 0) return
+  if (!((await read($, warmOverride)) ?? cfg.autoWarm)) return
   const now = await $.clock.now()
   if (now - live.lastTurnAt > cfg.warmMs) return
   const [cached, readings, w] = [await read($, cache), await read($, history), await read($, warm)]
@@ -79,6 +81,39 @@ async function maybeWarm($: EngineInterface, cfg: WarmConfig) {
   } finally {
     live.isWarming = false
   }
+}
+
+async function runCommand($: EngineInterface, cfg: WarmConfig, args: string) {
+  const [verb, value] = args.trim().toLowerCase().split(/\s+/)
+  if (verb === 'warm' && (value === 'on' || value === 'off')) {
+    await update($, warmOverride, () => value === 'on')
+    return value === 'on'
+      ? 'Auto-warm on for this session.'
+      : 'Auto-warm off for this session. Other sessions and the autoWarm option are unchanged.'
+  }
+  if (verb === 'warm' && value === 'reset') {
+    await update($, warmOverride, () => null)
+    return `Auto-warm follows the autoWarm option again (${cfg.autoWarm ? 'on' : 'off'}).`
+  }
+  if (verb !== undefined && verb !== '' && verb !== 'status') {
+    return 'Usage: /omni-token [status] | /omni-token warm on|off|reset'
+  }
+
+  const override = await read($, warmOverride)
+  const isOn = override ?? cfg.autoWarm
+  const cached = await read($, cache)
+  const w = await read($, warm)
+  const now = await $.clock.now()
+  const left = cached === null ? null : cached.lastRequestAt + cfg.ttlMs - now
+  const lines = [
+    `auto-warm: ${isOn ? 'on' : 'off'} (${override === null ? 'from the autoWarm option' : 'set for this session'})`,
+    `cache TTL: ${cfg.ttlMs === 5 * 60_000 ? '5m' : '1h'}, expires in ${left === null ? 'n/a' : left <= 0 ? 'expired' : countdown(left)}`,
+    `keep warm for: ${cfg.warmMs / 3_600_000}h after the last turn`,
+    `warms since the last turn: ${w.count}${w.missed ? ' (last one found the cache cold; stopped)' : ''}`,
+  ]
+  if (isOn && live.lastTurnAt === 0) lines.push('Warming starts after your next message.')
+  lines.push('Options: cacheTtl, autoWarm, warmHours (claude plugin configure omni-token@claude-code-mods)')
+  return lines.join('\n')
 }
 
 async function measure($: EngineInterface) {
@@ -128,6 +163,10 @@ export const register: Register = (on, options) => {
 
   on('session.start', async ($, e, next) => {
     const result = await next(e)
+    await $.command.register({
+      name: 'omni-token',
+      description: 'Show omni-token status; "warm on|off|reset" toggles cache auto-warm for this session',
+    })
     const tick = async () => {
       const t = await $.clock.now()
       await update($, clock, () => t)
@@ -138,6 +177,8 @@ export const register: Register = (on, options) => {
     if ((await read($, history)).length === 0) await measure($)
     return result
   })
+
+  on('command.run', { command: 'omni-token' }, async ($, e) => ({ text: await runCommand($, cfg, e.args) }))
 
   on('turn.complete', async ($, e, next) => {
     const result = await next(e)

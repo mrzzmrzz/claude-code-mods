@@ -14,6 +14,8 @@ declare module 'claude-code' {
       cache: Cache | null
       now: number
       warm: Warm
+      /** `/omni-token warm on|off` for this session; null follows the autoWarm option. */
+      warmOverride: boolean | null
     }
   }
 }

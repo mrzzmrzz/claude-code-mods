@@ -1,6 +1,6 @@
 {
   "name": "omni-token",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Context window weather, tok/s, prompt-cache hit rate and TTL, and cache auto-warm, in the band above the prompt",
   "types": "./types/index.d.ts",
   "author": {

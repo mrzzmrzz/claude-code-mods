@@ -50,6 +50,15 @@ With `autoWarm` on, while the session is idle the mod sends one tiny forked requ
 - It stops `warmHours` after the last turn started, and never warms an expired cache (that would pay the full write it exists to avoid) or a context under 50k tokens.
 - `warmed 3x` shows how many warms ran since the last turn; `warm missed` means a warm found the cache already cold, and warming stops until the next turn.
 
+### `/omni-token`
+
+| Command | Effect |
+| --- | --- |
+| `/omni-token` | Status: auto-warm on or off and why, cache TTL and time left, warms since the last turn, option names |
+| `/omni-token warm off` | Stop auto-warming in this session, at once; other sessions and the `autoWarm` option are unchanged |
+| `/omni-token warm on` | Auto-warm this session even with `autoWarm` off |
+| `/omni-token warm reset` | Follow the `autoWarm` option again |
+
 On a 1-hour TTL, keeping a cache warm costs 0.2/7.8 of a cold restart per hour, so it pays off for gaps under about 39 hours, if you come back.
 
 The API's usage figures don't say which TTL a session runs on, so set it to match yours: `1h` on most Claude subscriptions, `5m` on the API default or in usage overage.
@@ -66,4 +75,5 @@ Check one before committing:
 
 ```
 claude plugin validate ./plugins/omni-token
+claude plugin test ./plugins/omni-token
 ```
