@@ -1,6 +1,11 @@
 {
   "name": "claude-code-mods",
-  "owner": { "name": "mrzzmrzz" },
+  "owner": {
+    "name": "mrzzmrzz"
+  },
+  "metadata": {
+    "description": "Mods for Claude Code: live panes, bands and hooks"
+  },
   "plugins": [
     {
       "name": "token-weather",
